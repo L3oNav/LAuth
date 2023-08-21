@@ -1,0 +1,79 @@
+version: "3.8"
+
+services:
+
+  traefik:
+    image: traefik:v2.10
+    container_name: lnav_traefik_container
+    command: 
+      - "--api.insecure=true" 
+      - "--providers.docker=true"
+      - "--entrypoints.postgres.address=:5432"
+      - "--entrypoints.redis.address=:6379"
+      - "--entrypoints.server.address=:80"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+      - "5432:5432" # PostgreSQL port
+      - "6379:6379" # Redis port
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  server:
+    image: lnav_server_container
+    restart: always
+    container_name: lnav_server_container
+    depends_on:
+      - postgres
+      - traefik
+      - redis
+    build:
+      context: .
+      dockerfile: ./Containerfile
+    volumes:
+      - .:/code:z
+    env_file:
+      ./.envs
+    expose:
+      - 8000
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.server.rule=Host(`api.localhost`)"
+      - "traefik.http.routers.server.entrypoints=server, redis, postgres"
+      - "traefik.tcp.services.server.loadbalancer.server.port=8000"
+
+  redis:
+    image: redis:latest
+    container_name: lnav_redis_container
+    expose:
+      - 6379
+    labels:
+      - "traefik.enable=true"
+      # routers
+      - "traefik.tcp.routers.redis.rule=HostSNI(`*`)"
+      - "traefik.tcp.routers.redis.entryPoints=redis"
+      - "traefik.tcp.routers.redis.service=redis"
+      # services (needed for TCP)
+      - "traefik.tcp.services.redis.loadbalancer.server.port=6379"
+
+  postgres:
+    container_name: lnav_postgres
+    image: postgres:latest
+    restart: always
+    expose:
+      - 5432
+    environment:
+      POSTGRES_USER: debug
+      POSTGRES_PASSWORD: debug
+      POSTGRES_DB: db 
+    volumes:
+      - ./.data:/var/lib/postgresql/data
+    labels:
+      - "traefik.enable=true"
+      # routers
+      - "traefik.tcp.routers.postgres.rule=HostSNI(`*`)"
+      - "traefik.tcp.routers.postgres.entryPoints=postgres"
+      - "traefik.tcp.routers.postgres.service=postgres"
+      # services (needed for TCP)
+      - "traefik.tcp.services.postgres.loadbalancer.server.port=5432"
