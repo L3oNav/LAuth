@@ -4,7 +4,7 @@ services:
 
   traefik:
     image: traefik:v2.10
-    container_name: lnav_traefik_container
+    container_name: lnav-auth-traefik 
     command: 
       - "--api.insecure=true" 
       - "--providers.docker=true"
@@ -14,16 +14,16 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080"
+      - "8080:8080" # ?
       - "5432:5432" # PostgreSQL port
       - "6379:6379" # Redis port
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 
   server:
-    image: lnav_server_container
+    image: server_container
     restart: always
-    container_name: lnav_server_container
+    container_name: lnav-auth-server
     depends_on:
       - postgres
       - traefik
@@ -39,13 +39,13 @@ services:
       - 8000
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.server.rule=Host(`api.localhost`)"
+      - "traefik.tcp.routers.server.rule=HostSNI(`*`)"
       - "traefik.http.routers.server.entrypoints=server, redis, postgres"
       - "traefik.tcp.services.server.loadbalancer.server.port=8000"
 
   redis:
     image: redis:latest
-    container_name: lnav_redis_container
+    container_name: lnav-auth-redis
     expose:
       - 6379
     labels:
@@ -58,7 +58,7 @@ services:
       - "traefik.tcp.services.redis.loadbalancer.server.port=6379"
 
   postgres:
-    container_name: lnav_postgres
+    container_name: lnav-auth-postgres
     image: postgres:latest
     restart: always
     expose:
