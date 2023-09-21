@@ -12,5 +12,6 @@ async def login_via_google(request: Request):
 @google_router.get('/auth')
 async def authorize_google(request: Request):
     token = await oauth.google.authorize_access_token(request)
-    user = token
-    return dict(user)
+    user = token['userinfo']
+    request.session['user'] = dict(user)
+    return dict(token)
