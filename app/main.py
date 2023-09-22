@@ -7,7 +7,9 @@ import os
 
 app = FastAPI()
 
-app.add_middleware(SessionMiddleware, secret_key=get_settings().SECRET_KEY)
+SK = get_settings().SECRET_KEY
+
+app.add_middleware(SessionMiddleware, secret_key=SK)
 app.add_middleware(
     CORSMiddleware,
     allow_origins= [ "http://localhost:8000", "http://localhost" ],
@@ -20,11 +22,17 @@ app.include_router(google_router)
 
 @app.get("/")
 async def main(request: Request):
-    email = dict(request.session).get("user", {}).get("email", None)
+    user = [dict(request.session['user']) if request.session.get('user') else None]
     urls = [{"path": route.path, "name": route.name} for route in request.app.routes]
     return {
-        "email": email,
+        "user": user,
+        "secrert_key": [SK if get_settings().ENVIROMENT == "development" else "*************"],
         "message": "Hello World",
         "env": os.getenv("ENVIROMENT", "development"),
         "urls": urls
     }
+
+@app.get("/logout")
+async def logout(request: Request):
+    request.session.pop('user', None)
+    return {"message": "Logout success"}

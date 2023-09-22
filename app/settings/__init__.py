@@ -9,7 +9,7 @@ class Settings(BaseSettings):
 
     APP_NAME: str = "lnav-auth-service"
     SECRET_KEY: str = os.getenv("SECRET_KEY")
-    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
+    ENVIROMENT: str = os.getenv("ENVIROMENT", "development")
     ACCESS_TOKEN_EXPIRATION_MINUTES: int = 1440
     OBJECT_STORAGE_ACCESS_KEY: str = os.getenv("OBJECT_STORAGE_ACCESS_KEY")
     OBJECT_STORAGE_SECRET_KEY: str = os.getenv("OBJECT_STORAGE_SECRET_KEY")
