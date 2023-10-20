@@ -1,3 +1,3 @@
-#import redis as redis_client
+import redis as redis_client
 
-#redis = redis_client.Redis(host='redis', port=6379, db=0)
+redis = redis_client.Redis(host='redis', port=6379, db=0)
