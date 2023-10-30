@@ -1,1 +1,1 @@
-from .user_class import user_manager
+from .user_manager import user_manager

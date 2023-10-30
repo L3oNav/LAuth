@@ -1,5 +1,11 @@
 version: "3.8"
 
+volumes:
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+
 services:
 
   traefik:
@@ -7,7 +13,9 @@ services:
     container_name: lnav-auth-traefik 
     command: 
       - "--api.insecure=true" 
+      - "--api.dashboard=true"
       - "--providers.docker=true"
+      - "--log.level=DEBUG"
       - "--entrypoints.postgres.address=:5432"
       - "--entrypoints.redis.address=:6379"
       - "--entrypoints.server.address=:80"
@@ -36,17 +44,17 @@ services:
     env_file:
       ./.envs
     expose:
-      - 8000
+      - 3000
     labels:
       - "traefik.enable=true"
       - "traefik.tcp.routers.server.rule=HostSNI(`*`)"
-      - "traefik.http.routers.server.entrypoints=server, redis, postgres"
-      - "traefik.tcp.services.server.loadbalancer.server.port=8000"
+      - "traefik.tcp.routers.server.entryPoints=server"
+      - "traefik.tcp.services.server.loadbalancer.server.port=3000"
 
   redis:
     image: redis:latest
     container_name: lnav-auth-redis
-    expose:
+    ports:
       - 6379
     labels:
       - "traefik.enable=true"
@@ -56,7 +64,7 @@ services:
       - "traefik.tcp.routers.redis.service=redis"
       # services (needed for TCP)
       - "traefik.tcp.services.redis.loadbalancer.server.port=6379"
-
+  
   postgres:
     container_name: lnav-auth-postgres
     image: postgres:latest

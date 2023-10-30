@@ -1,7 +1,10 @@
 from fastapi import APIRouter
 from starlette.requests import Request
-from starlette.responses import RedirectResponse
+from starlette.responses import RedirectResponse, HTMLResponse
+from authlib.integrations.starlette_client import OAuthError
 from app.auth.oauth import oauth
+from app.users import user_manager
+import secrets
 
 google_router = APIRouter(prefix="/v1/auth/google")
 
@@ -10,21 +13,17 @@ async def login_via_google(request: Request):
     redirect_uri = request.url_for('authorize_google')
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
-async def get_google_user(request: Request):
-    user = request.session.get('user')
-    if user is None:
-        return None
-    return user
-
 @google_router.get('/auth')
 async def authorize_google(request: Request):
-    if request.session.get('user') is None:
+    if request.session.get('session') is None:
         try:
-            token = await oauth.google.authorize_access_token(request)
-        except Exception as e:
-            return {'error': str(e)}
-        user = token['userinfo']
-        request.session['user'] = dict(user)
-        return dict(user)
-    else:
-        return RedirectResponse(url='/')
+            user_info = await oauth.google.authorize_access_token(request)
+        except OAuthError as err:
+            print(err)
+            return err.error
+        token = user_manager.authenticate_w_google(data=user_info)
+        if not token:
+            raise HTTPException(status_code=400, detail="Token is not returned")
+        print("session", token)
+        request.session['sessionId'] = dict(token)
+    return RedirectResponse(url="/")

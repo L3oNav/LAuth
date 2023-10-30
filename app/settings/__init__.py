@@ -1,6 +1,5 @@
 from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
-from .redis import redis
 from functools import lru_cache
 import os
 load_dotenv()
