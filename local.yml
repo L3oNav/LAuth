@@ -1,11 +1,5 @@
 version: "3.8"
 
-volumes:
-  prometheus-data:
-    driver: local
-  grafana-data:
-    driver: local
-
 services:
 
   traefik:
