@@ -88,11 +88,15 @@ class UserManager:
 
     async def refresh_access_token(self, access_token, refresh_token):
 
-        access_payload = jwt.decode(access_token, get_settings().SECRET_KEY, algorithm="HS256")
+        access_payload  = jwt.decode(access_token, get_settings().SECRET_KEY, algorithm="HS256")
         refresh_payload = jwt.decode(refresh_token, get_settings().SECRET_KEY, algorithm="HS256")
 
         user_id = refresh_payload.get("sub")
-        email = access_payload.get("sub")
+        email   = access_payload.get("sub")
+
+        access_token_collection  = self._get_session_data(f"user:{email.lower()}:access_token")
+        refresh_token_collection = self._get_session_data(f"user:{email.lower()}:refresh_token")
+
 
         user = get_user({ "user_id": user_id, "email": email }, w_acc = False )
 
@@ -105,14 +109,18 @@ class UserManager:
         session = self.session
         session = next(session())
         if w_acc:
-            return session.query(User).filter(User.accounts.any(Account.issuer == data['iss']), User.email == data['email']).first()
+           return session.query(User).filter(User.accounts.any(Account.issuer == data['iss']), User.email == data['email']).first()
         else:
             return session.query(User).filter(User.id == data['user_id'], User.email == data['email']).first()
 
-    def _create_access_token(self, data: dict, access_token: str) -> dict:
-        """
+    def get_user_by_jwt(self, access_token):
+        user_jwt = jwt.decode(access_token, get_settings().SECRET_KEY, algorithms=["HS256"])
+        user_jwt['email'] = user_jwt['sub']
+        user = self.get_user(user_jwt, w_acc = False)
 
-        """
+        return {"email": user.email, "name": user.email if not user.name else user.name}
+
+    def _create_access_token(self, data: dict, access_token: str) -> dict:
         to_encode = data
 
         expire_access_token = datetime.utcnow() + timedelta(minutes=get_settings().ACCESS_TOKEN_EXPIRATION_MINUTES)
@@ -121,6 +129,7 @@ class UserManager:
         access_token_payload = {
             "exp": expire_access_token,
             "sub": data.email,
+            "user_id": str(data.id)
         }
 
         refresh_token_payload = {
@@ -134,6 +143,6 @@ class UserManager:
         self._set_session_data(f"user:{to_encode.email.lower()}:access_token", access_token)
         self._set_session_data(f"user:{to_encode.email.lower()}:refresh_token", refresh_token)
 
-        return {"access_token": access_token, "refresh_token": access_token, "user": to_encode.email}
+        return {"access_token": access_token, "refresh_token": refresh_token, "user": to_encode.email}
 
 user_manager = UserManager()

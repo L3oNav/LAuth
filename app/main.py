@@ -1,9 +1,9 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from starlette.middleware.sessions import SessionMiddleware
+from starlette_authlib.middleware import AuthlibMiddleware as SessionMiddleware
 from app.auth.urls import google_router
-#from app.users.urls import user_router
+from app.users.urls import users_router
 from app.settings import get_settings
 from app.auth.oauth import oauth
 import os
@@ -14,8 +14,8 @@ print(get_settings().SECRET_KEY)
 
 app.add_middleware(
     SessionMiddleware, 
-    secret_key  = get_settings().SECRET_KEY,
-    max_age     = get_settings().ACCESS_TOKEN_EXPIRATION_MINUTES,
+    secret  = get_settings().SECRET_KEY,
+    max_age = get_settings().ACCESS_TOKEN_EXPIRATION_MINUTES,
 )
 
 app.add_middleware(
@@ -30,7 +30,7 @@ app.add_middleware(
 )
 
 app.include_router(google_router)
-
+app.include_router(users_router)
 @app.get("/")
 async def main(request: Request):
     urls = [{"path": route.path, "name": route.name} for route in request.app.routes]

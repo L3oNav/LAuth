@@ -13,6 +13,8 @@ class User(Model):
     password = Column(String(50), nullable=True, default=None)
     accounts = relationship("Account", back_populates="user")
 
+
+
 class Account(Model):
     __tablename__ = "accounts"
 
