@@ -20,7 +20,8 @@ async def authorize_google(request: Request):
     except OAuthError as err:
         print(err)
         return err.error
-    token = user_manager.authenticate_w_google(data=user_info)
-    if not token:
-        raise HTTPException(status_code=400, detail="Token is not returned")
-    return token 
+    key = user_manager.authenticate_w_google(data=user_info)
+    if not key:
+        raise HTTPException(status_code=400, detail="Key is not returned")
+    request.session['key'] = key
+    return RedirectResponse("/")

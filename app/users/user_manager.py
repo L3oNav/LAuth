@@ -9,6 +9,7 @@ from jose import jwt
 from app.auth.oauth import oauth
 from app.settings.redis import get_redis_connection
 import asyncio
+import json 
 
 class UserManager:
 
@@ -18,11 +19,12 @@ class UserManager:
         self.redis = get_redis_connection()
 
     def _set_session_data(self, key, value):
-        self.redis.set(key, value)
-        return self.redis.get(key)
+        value_bytes = json.dumps(value)
+        self.redis.set(key, value_bytes)
+        return json.loads(self.redis.get(key))
 
     def _get_session_data(self, key):
-        return self.redis.get(key)
+        return json.loads(self.redis.get(key))
 
     def delete_session_data(self, key):
         try:
@@ -34,7 +36,7 @@ class UserManager:
     def authenticate_w_google(self, data):
         user_info = data['userinfo']
         user = self._get_or_create_user(user_info)
-        token = self._create_access_token(user, data['access_token'])
+        token = self._create_access_token(user)
         return token 
 
     def _create_account(self, data: dict, user):
@@ -120,29 +122,17 @@ class UserManager:
 
         return {"email": user.email, "name": user.email if not user.name else user.name}
 
-    def _create_access_token(self, data: dict, access_token: str) -> dict:
-        to_encode = data
+    def _create_access_token(self, user) -> dict:
 
-        expire_access_token = datetime.utcnow() + timedelta(minutes=get_settings().ACCESS_TOKEN_EXPIRATION_MINUTES)
-        expire_refresh_token = datetime.utcnow() + timedelta(minutes=get_settings().REFRESH_TOKEN_EXPIRATION_MINUTES)
-
-        access_token_payload = {
-            "exp": expire_access_token,
-            "sub": data.email,
-            "user_id": str(data.id)
+        user_payload = {
+            "id": str(user.id),
+            "email": user.email.lower(),
+            "name": user.name
         }
+            
 
-        refresh_token_payload = {
-            "exp": expire_refresh_token,
-            "sub": str(data.id),
-        }
+        self._set_session_data(f"user:{user_payload['id']}", user_payload)
 
-        access_token = jwt.encode(access_token_payload, get_settings().SECRET_KEY, algorithm="HS256")
-        refresh_token = jwt.encode(refresh_token_payload, get_settings().SECRET_KEY, algorithm="HS256")
-
-        self._set_session_data(f"user:{to_encode.email.lower()}:access_token", access_token)
-        self._set_session_data(f"user:{to_encode.email.lower()}:refresh_token", refresh_token)
-
-        return {"access_token": access_token, "refresh_token": refresh_token, "user": to_encode.email}
+        return user_payload['email']
 
 user_manager = UserManager()
