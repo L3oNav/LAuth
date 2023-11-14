@@ -7,8 +7,9 @@ load_dotenv()
 class Settings(BaseSettings):
 
     APP_NAME: str = "lnav-auth-service"
+    HOST: str = os.getenv("HOST")
     SECRET_KEY: str = os.getenv("SECRET_KEY")
-    ENVIROMENT: str = os.getenv("ENVIROMENT", "development")
+    ENVIRONMENT:  str = os.getenv("ENVIROMENT", "development")
     ACCESS_TOKEN_EXPIRATION_MINUTES: int = 1440
     REFRESH_TOKEN_EXPIRATION_MINUTES: int = 43200 
     OBJECT_STORAGE_ACCESS_KEY: str = os.getenv("OBJECT_STORAGE_ACCESS_KEY")

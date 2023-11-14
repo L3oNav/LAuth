@@ -15,7 +15,8 @@ app.add_middleware(
     SessionMiddleware, 
     secret_key  = get_settings().SECRET_KEY,
     max_age = 60 * get_settings().ACCESS_TOKEN_EXPIRATION_MINUTES,
-    session_cookie = "session_id"
+    session_cookie = "session_id",
+    domain = get_settings().HOST
 )
 
 app.add_middleware(
